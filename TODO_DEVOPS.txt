@@ -77,3 +77,66 @@ Add data in browser at localhost:8080.
 Press ENTER in the script window.
 Wait for success!
 
+
+
+
+///
+docker network create jenkins
+
+docker rm -f jenkins-server
+docker run -d -p 8080:8080 -p 50000:50000 --name jenkins-server --network jenkins `
+  -v //var/run/docker.sock:/var/run/docker.sock `
+  -v $HOME/.kube/config:/var/jenkins_home/.kube/config `
+  -v $HOME/.minikube:$HOME/.minikube `
+  --user root `
+  jenkins/jenkins:lts
+
+  docker ps
+
+  docker exec -it -u root jenkins-server bash
+
+
+##########################STARTS#########################
+#
+cd /tmp
+
+# 1. Install Docker CLI
+echo "Installing Docker..."
+curl -fsSLO https://download.docker.com/linux/static/stable/x86_64/docker-24.0.6.tgz
+tar xzvf docker-24.0.6.tgz
+mv docker/docker /usr/local/bin/
+rm -rf docker docker-24.0.6.tgz
+
+# 2. Install Terraform
+echo "Installing Terraform..."
+curl -fsSLO https://releases.hashicorp.com/terraform/1.6.0/terraform_1.6.0_linux_amd64.zip
+unzip terraform_1.6.0_linux_amd64.zip
+mv terraform /usr/local/bin/
+rm terraform_1.6.0_linux_amd64.zip
+
+# 3. Install Kubectl
+echo "Installing Kubectl..."
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x kubectl
+mv kubectl /usr/local/bin/
+
+# 4. Install Helm
+echo "Installing Helm..."
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+# 5. Install Ansible
+echo "Installing Ansible..."
+apt-get update
+apt-get install -y python3-pip git
+pip3 install ansible kubernetes --break-system-packages
+
+# 6. FIX KUBERNETES CONFIG (Crucial for Windows)
+# Replaces C:\Users\abhi1 with the Linux path inside container
+sed -i 's|C:\\Users\\abhi1|/var/jenkins_home|g' /var/jenkins_home/.kube/config
+sed -i 's|\\|/|g' /var/jenkins_home/.kube/config
+
+echo "SETUP COMPLETE!"
+##########################ENDS#########################
+
+
+docker exec jenkins-server cat /var/jenkins_home/secrets/initialAdminPassword
