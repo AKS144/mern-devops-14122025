@@ -6,7 +6,9 @@ pipeline {
     }
     stages {
         stage('Checkout') {
-            steps { git branch: 'main', url: 'https://github.com/AKS144/mern-devops-14122025.git' }
+            steps {
+                checkout scm
+            }
         }
         stage('Infrastructure') {
             steps { dir('terraform') { sh 'terraform init && terraform apply -auto-approve' } }
