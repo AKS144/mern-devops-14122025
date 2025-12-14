@@ -7,8 +7,8 @@ terraform {
 }
 
 provider "kubernetes" {
-  # We will generate this specific file in the Jenkins pipeline
-  config_path = "/var/jenkins_home/workspace/k8s-config-fixed"
+  # This matches the file we generated in Jenkinsfile
+  config_path = "/var/jenkins_home/workspace/MERN-Deploy/k8s-config-fixed"
 }
 
 resource "kubernetes_namespace" "mern_ns" {

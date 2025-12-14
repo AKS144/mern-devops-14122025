@@ -4,8 +4,9 @@ pipeline {
     environment {
         DOCKER_CRED = credentials('dockerhub-abhi144k')
         DOCKER_USER = 'abhi144k'
-        // Point everyone to the fixed config
-        KUBECONFIG = "/var/jenkins_home/workspace/k8s-config-fixed"
+        // Point to the fixed file we generate
+        KUBECONFIG = "${WORKSPACE}/k8s-config-fixed"
+        K8S_AUTH_KUBECONFIG = "${WORKSPACE}/k8s-config-fixed"
     }
 
     stages {
@@ -18,27 +19,29 @@ pipeline {
         stage('Fix Kubernetes Config') {
             steps {
                 script {
-                    echo "Generating fixed Kubernetes config..."
+                    echo "Reading and Fixing Kubernetes Config..."
                     
-                    // 1. Copy the config to workspace
-                    sh 'cp /var/jenkins_home/.kube/config /var/jenkins_home/workspace/k8s-config-fixed'
+                    // 1. Read the mounted config file into a variable
+                    String configContent = readFile file: '/var/jenkins_home/.kube/config'
                     
-                    // 2. Fix IP Addresses (Point to Minikube Docker DNS)
-                    sh 'sed -i "s|127.0.0.1|minikube|g" /var/jenkins_home/workspace/k8s-config-fixed'
-                    sh 'sed -i "s|localhost|minikube|g" /var/jenkins_home/workspace/k8s-config-fixed'
-                    sh 'sed -i "s|server:.*|server: https://minikube:8443|g" /var/jenkins_home/workspace/k8s-config-fixed'
-
-                    // 3. Fix Windows User Paths (C:\Users\...)
-                    // Use single quotes for the sh command to protect backslashes
-                    sh "sed -i 's|C:\\\\Users\\\\[^/]*|/var/jenkins_home|g' /var/jenkins_home/workspace/k8s-config-fixed"
+                    // 2. Fix IPs (localhost -> minikube)
+                    configContent = configContent.replace('127.0.0.1', 'minikube')
+                    configContent = configContent.replace('localhost', 'minikube')
+                    configContent = configContent.replace('server: https://minikube:8443', 'server: https://minikube:8443') 
+                    // (The line above ensures we don't double-replace, but keeps it safe)
                     
-                    // 4. Fix Backslashes (THE FIX)
-                    // We use 'tr' instead of 'sed' here because it is safer for backslashes
-                    sh 'cat /var/jenkins_home/workspace/k8s-config-fixed | tr "\\\\" "/" > /var/jenkins_home/workspace/k8s-config-temp'
-                    sh 'mv /var/jenkins_home/workspace/k8s-config-temp /var/jenkins_home/workspace/k8s-config-fixed'
-
-                    // 5. Verify content (Check if file looks right in logs)
-                    sh 'cat /var/jenkins_home/workspace/k8s-config-fixed'
+                    // 3. Fix Windows Paths (Regex to swap C:\Users\Name with /var/jenkins_home)
+                    // Matches "C:\Users\ANYTHING"
+                    configContent = configContent.replaceAll(/C:\\Users\\[^\\]+/, '/var/jenkins_home')
+                    
+                    // 4. Fix Backslashes to Forward Slashes
+                    configContent = configContent.replace('\\', '/')
+                    
+                    // 5. Save to Workspace
+                    writeFile file: 'k8s-config-fixed', text: configContent
+                    
+                    // 6. Verify it looks correct (print first 10 lines)
+                    sh 'head -n 10 k8s-config-fixed'
                 }
             }
         }
@@ -46,7 +49,7 @@ pipeline {
         stage('Infrastructure (Terraform)') {
             steps {
                 dir('terraform') {
-                    // Clean up Terraform lock files to prevent errors
+                    // Clean previous terraform state to force reload
                     sh 'rm -rf .terraform .terraform.lock.hcl'
                     sh 'terraform init'
                     sh 'terraform apply -auto-approve'
@@ -55,11 +58,9 @@ pipeline {
         }
 
         stage('Secrets (Ansible)') {
-            environment {
-                K8S_AUTH_KUBECONFIG = "/var/jenkins_home/workspace/k8s-config-fixed"
-            }
             steps {
                 dir('ansible') {
+                    // Ansible uses the env var K8S_AUTH_KUBECONFIG automatically
                     sh 'ansible-playbook -i inventory.ini secrets.yaml'
                 }
             }
@@ -86,7 +87,7 @@ pipeline {
                    --namespace mern-namespace \
                    --set backend.image=$DOCKER_USER/mern-backend \
                    --set frontend.image=$DOCKER_USER/mern-frontend \
-                   --kubeconfig /var/jenkins_home/workspace/k8s-config-fixed
+                   --kubeconfig ${WORKSPACE}/k8s-config-fixed
                 """
             }
         }
