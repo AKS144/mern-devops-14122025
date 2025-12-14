@@ -11,10 +11,24 @@ pipeline {
             }
         }
         stage('Infrastructure') {
-            steps { dir('terraform') { sh 'terraform init && terraform apply -auto-approve' } }
+            steps {
+                dir('terraform') {
+                    sh 'terraform init'
+                    sh 'terraform apply -auto-approve'
+                }
+            }
         }
-        stage('Secrets') {
-            steps { dir('ansible') { sh 'ansible-playbook -i inventory.ini secrets.yaml' } }
+        stage('Secrets (Ansible)') {
+            environment {
+                // Force Ansible/K8s to use our fixed config
+                K8S_AUTH_KUBECONFIG = '/var/jenkins_home/.kube/config-jenkins'
+            }
+            steps {
+                dir('ansible') {
+                    // We update the secrets.yaml command to use the env var automatically
+                    sh 'ansible-playbook -i inventory.ini secrets.yaml'
+                }
+            }
         }
         stage('Build & Push') {
             steps {
