@@ -1,0 +1,286 @@
+minikube -p minikube docker-env | Invoke-Expression  (dont use this eval $(minikube -p minikube docker-env)
+)
+
+
+
+//now helm install
+
+cd mern-master
+helm install mern-app ./k8s-helm
+
+error in image upload
+so repeat
+# 1. Build Backend
+cd backend
+docker build -t mern-backend:latest .
+
+# 2. Build Frontend
+cd ../frontend
+docker build -t mern-frontend:latest .
+
+# 3. Go back to root
+cd ..
+
+kubectl delete pods --all
+kubectl get pods
+
+
+
+
+//Once mongo-0 is Running, don't forget the critical step to link the database replicas, or your backend will crash:
+
+kubectl exec -it mongo-0 -- mongosh -u admin -p password123 --authenticationDatabase admin --eval 'rs.initiate({ _id: "rs0", members: [ { _id: 0, host: "mongo-0.mongo-service.default.svc.cluster.local:27017" }, { _id: 1, host: "mongo-1.mongo-service.default.svc.cluster.local:27017" }, { _id: 2, host: "mongo-2.mongo-service.default.svc.cluster.local:27017" } ] })'
+
+
+
+
+////////////////////follow for database not connecting as admin its redirect to test db/////////////////////////
+mongo-statefulset.yaml chnage it
+# 1. Uninstall
+helm uninstall mern-app
+
+# 2. Delete PVCs (Very Important)
+kubectl delete pvc --all
+
+# 3. Install new version
+helm install mern-app ./k8s-helm
+
+kubectl get pods --watch
+
+
+then run 
+kubectl exec -it mongo-0 -- mongosh -u admin -p password123 --authenticationDatabase admin --eval '
+rs.initiate({
+  _id: "rs0",
+  members: [
+    { _id: 0, host: "mongo-0.mongo-service.default.svc.cluster.local:27017" },
+    { _id: 1, host: "mongo-1.mongo-service.default.svc.cluster.local:27017" },
+    { _id: 2, host: "mongo-2.mongo-service.default.svc.cluster.local:27017" }
+  ]
+})'
+
+
+if not { ok: 1 }
+
+
+got error for
+          
+            1/1     Running   0          32s
+            PS D:\01DEVOPS\DevOps Practice and Preparation\DevOps MERN K8S MINIKUBE\mern-master> kubectl exec -it mongo-0 -- mongosh -u admin -p password123 --authenticationDatabase admin --eval '
+            rs.initiate({
+            _id: "rs0",
+            members: [
+            { _id: 0, host: "mongo-0.mongo-service.default.svc.cluster.local:27017" },
+            { _id: 1, host: "mongo-1.mongo-service.default.svc.cluster.local:27017" },
+            { _id: 2, host: "mongo-2.mongo-service.default.svc.cluster.local:27017" }
+            ]
+            })'
+            Defaulted container "mongo" out of: mongo, fix-keyfile-permissions (init)
+            SyntaxError: Support for the experimental syntax 'decimal' isn't currently enabled (5:29):
+            3 |   _id: rs0,
+            4 |   members: [
+            5 |     { _id: 0, host: mongo-0.mongo-service.default.svc.cluster.local:27017 },
+            |                             ^
+            6 |     { _id: 1, host: mongo-1.mongo-service.default.svc.cluster.local:27017 },
+            7 |     { _id: 2, host: mongo-2.mongo-service.default.svc.cluster.local:27017 }
+            8 |   ]
+            Add @babel/plugin-syntax-decimal (https://github.com/babel/babel/tree/main/packages/babel-plugin-syntax-decimal) to the 'plugins' section of your Babel config to enable parsing.
+            command terminated with exit code 1
+
+
+
+kubectl exec -it mongo-0 -- mongosh -u admin -p password123 --authenticationDatabase admin
+
+//Paste the Configuration
+rs.initiate({
+  _id: "rs0",
+  members: [
+    { _id: 0, host: "mongo-0.mongo-service.default.svc.cluster.local:27017" },
+    { _id: 1, host: "mongo-1.mongo-service.default.svc.cluster.local:27017" },
+    { _id: 2, host: "mongo-2.mongo-service.default.svc.cluster.local:27017" }
+  ]
+})
+
+
+
+It should display: { ok: 1 }.
+Press Enter.
+The prompt should change from test> to rs0 [direct: primary] test> (or secondary).
+Type exit to leave.
+
+
+
+//sometimes if error
+error:MongooseError: Operation tasks.insertOne() buffering timed out after 10000ms
+as backend not connected above error comes
+solution:
+-kubectl exec -it mongo-0 -- mongosh -u admin -p password123 --authenticationDatabase admin
+rs.initiate({
+  _id: "rs0",
+  members: [
+    { _id: 0, host: "mongo-0.mongo-service.default.svc.cluster.local:27017" },
+    { _id: 1, host: "mongo-1.mongo-service.default.svc.cluster.local:27017" },
+    { _id: 2, host: "mongo-2.mongo-service.default.svc.cluster.local:27017" }
+  ]
+})
+-kubectl rollout restart deployment backend
+-kubectl get pods
+-minikube service frontend-service --url
+
+
+
+
+
+
+
+
+
+//grafana
+
+run on local
+kubectl port-forward svc/mern-monitor-grafana 3000:80 -n monitoring
+localhost:3000
+
+# Get pod name
+$pod = kubectl get pods -n monitoring -l app.kubernetes.io/name=grafana -o jsonpath="{.items[0].metadata.name}"
+
+# Force password to 'admin123'
+kubectl exec -it -n monitoring $pod -- grafana-cli admin reset-admin-password admin123
+
+
+/////////////////////end follow for database not connecting as admin its redirect to test db///////////////////////////
+
+
+
+
+
+
+
+
+//velero
+in mern-master folder download velero.exe then run below command 
+Set-Content -Path ./credentials-velero -Value "[default]`r`naws_access_key_id = minio`r`naws_secret_access_key = minio123"
+
+
+credentials-velero   it will auto generated
+//mini-setup.yaml
+
+
+
+.\velero install --provider aws --plugins velero/velero-plugin-for-aws:v1.2.0 --bucket velero --secret-file ./credentials-velero --use-volume-snapshots=false --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.default.svc:9000
+.\velero backup create ultimate-backup --include-namespaces default
+
+
+
+
+
+
+
+
+
+
+
+
+
+//new 07/12/2025//
+EXT:
+velero backup get
+velero backup delete --all --confirm
+velero backup delete fresh-backup --confirm
+
+
+helm upgrade --install mern-app ./k8s-helm
+
+
+
+//From here start for fresh k8s//
+minikube delete --all
+minikube start --driver=docker --memory=11000mb --cpus=5
+minikube start --driver=docker --memory=11000mb --cpus=5 --mount --mount-string="D:\mern-k8s-project\minio-storage:/mnt/minio-data"
+
+
+minikube addons enable ingress
+& minikube -p minikube docker-env --shell powershell | Invoke-Expression
+
+
+minio-setup.yaml
+mongo-statefulset.yaml
+
+kubectl apply -f minio-setup.yaml
+
+
+helm uninstall mern-app  //only if redoing
+helm install mern-app ./k8s-helm
+
+& minikube -p minikube docker-env --shell powershell | Invoke-Expression
+# Build Backend
+cd backend
+docker build -t mern-backend:latest .
+cd ..
+
+# Build Frontend
+cd frontend
+docker build -t mern-frontend:latest .
+cd ..
+helm install mern-app ./k8s-helm
+kubectl get pods -w
+
+
+# Install MinIO
+kubectl apply -f minio-setup.yaml
+
+kubectl exec -it mongo-0 -- mongosh -u admin -p password123 --authenticationDatabase admin --eval "try { rs.reconfig(rs.conf(), {force: true}) } catch(e) { rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'mongo-0.mongo-service.default.svc.cluster.local:27017'}, {_id: 1, host: 'mongo-1.mongo-service.default.svc.cluster.local:27017'}, {_id: 2, host: 'mongo-2.mongo-service.default.svc.cluster.local:27017'}]}) }"
+
+//error comes for above Defaulted container "mongo" out of: mongo, fix-permissions (init)
+refer above
+kubectl exec -it mongo-0 -- mongosh -u admin -p password123 --authenticationDatabase admin
+rs.initiate({
+  _id: "rs0",
+  members: [
+    { _id: 0, host: "mongo-0.mongo-service.default.svc.cluster.local:27017" },
+    { _id: 1, host: "mongo-1.mongo-service.default.svc.cluster.local:27017" },
+    { _id: 2, host: "mongo-2.mongo-service.default.svc.cluster.local:27017" }
+  ]
+})
+//
+
+"[default]`r`naws_access_key_id = minio`r`naws_secret_access_key = minio123" | Out-File -FilePath ./credentials-velero -Encoding ascii
+
+kubectl run minio-maker --rm -it --image=minio/mc --restart=Never --command -- /bin/sh -c "mc alias set local http://minio.default.svc:9000 minio minio123; mc mb local/velero --ignore-existing; echo 'BUCKET CREATED'"
+
+
+.\velero install --provider aws --plugins velero/velero-plugin-for-aws:v1.2.0 --bucket velero --secret-file ./credentials-velero --use-volume-snapshots=false --use-node-agent --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.default.svc:9000
+
+--add data on minikube service frontend-service --url
+
+//backup
+kubectl annotate pod mongo-0 backup.velero.io/backup-volumes=mongo-persistent-storage --overwrite
+
+.\velero backup create complete-backup --include-namespaces default --wait
+
+kubectl -n velero get podvolumebackups -l velero.io/backup-name=complete-backup  //or below
+
+//also every schedule for every 5min backup
+.\velero schedule create daily-backup --schedule="*/5 * * * *" --include-namespaces default --default-volumes-to-fs-backup
+
+//ends here for fresh k8s
+
+
+
+//delete everything for backup
+kubectl delete deployment backend frontend
+kubectl delete statefulset mongo
+kubectl delete pvc --all
+
+
+.\velero restore create --from-backup complete-backup --wait
+
+kubectl get pods -w
+minikube service frontend-service --url 
+
+
+kubectl exec -it mongo-0 -- mongosh -u admin -p password123 --authenticationDatabase admin --eval "try { rs.reconfig(rs.conf(), {force: true}) } catch(e) { rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'mongo-0.mongo-service.default.svc.cluster.local:27017'}, {_id: 1, host: 'mongo-1.mongo-service.default.svc.cluster.local:27017'}, {_id: 2, host: 'mongo-2.mongo-service.default.svc.cluster.local:27017'}]}) }"
+
+kubectl rollout restart deployment backend
+
+//ends 07/12/2025//

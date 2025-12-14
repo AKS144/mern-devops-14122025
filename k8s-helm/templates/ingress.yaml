@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mern-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  rules:
+  - http:
+      paths:
+      # 1. API Route: Matches /api, /api/, /api/tasks
+      - path: /api(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: backend-service
+            port:
+              number: 5000
+      # 2. Frontend Route: Matches / or anything else
+      - path: /()(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-service
+            port:
+              number: 80

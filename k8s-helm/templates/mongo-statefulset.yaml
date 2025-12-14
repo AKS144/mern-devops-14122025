@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongo
+spec:
+  serviceName: "mongo-service"
+  replicas: {{ .Values.mongodb.replicas }}
+  selector:
+    matchLabels:
+      app: mongo
+  template:
+    metadata:
+      labels:
+        app: mongo
+    spec:
+      securityContext:
+        fsGroup: 999
+        runAsUser: 999
+        runAsGroup: 999
+      initContainers:
+      - name: fix-permissions
+        image: busybox
+        command: ["sh", "-c", "cp /tmp/secret/keyfile /etc/mongo-keyfile/keyfile && chmod 400 /etc/mongo-keyfile/keyfile && chown 999:999 /etc/mongo-keyfile/keyfile"]
+        volumeMounts:
+        - name: secret-vol
+          mountPath: /tmp/secret
+        - name: keyfile-final
+          mountPath: /etc/mongo-keyfile
+      containers:
+      - name: mongo
+        image: {{ .Values.mongodb.image }}
+        args: ["--bind_ip_all", "--replSet", "rs0", "--auth", "--keyFile", "/etc/mongo-keyfile/keyfile"]
+        ports:
+        - containerPort: 27017
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: mern-config
+              key: MONGO_INITDB_ROOT_USERNAME
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mern-secrets
+              key: mongo-root-password
+        volumeMounts:
+        - name: mongo-storage
+          mountPath: /data/db
+        - name: keyfile-final
+          mountPath: /etc/mongo-keyfile
+          readOnly: true
+      volumes:
+      - name: secret-vol
+        secret:
+          secretName: mern-secrets
+          items:
+          - key: mongo-keyfile
+            path: keyfile
+      - name: keyfile-final
+        emptyDir: {}
+  volumeClaimTemplates:
+  - metadata:
+      name: mongo-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi

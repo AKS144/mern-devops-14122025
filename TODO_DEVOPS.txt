@@ -1,0 +1,79 @@
+
+mern-master/
+├── backend/
+│   ├── Dockerfile
+│   ├── package.json
+│   └── server.js
+├── frontend/
+│   ├── Dockerfile
+│   ├── package.json
+│   └── src/App.js
+├── k8s-helm/
+│   ├── Chart.yaml
+│   ├── values.yaml
+│   └── templates/ (All yaml files go here)
+├── minio-setup.yaml
+├── credentials-velero
+└── auto_restore.ps1
+
+
+
+# 1. Reset everything
+minikube delete --all
+
+# 2. Start Minikube (High specs for Monitoring/Backups)
+minikube start --driver=docker --memory=11000mb --cpus=5
+
+# 3. Enable Ingress
+minikube addons enable ingress
+
+# 4. Point Terminal to Minikube Docker
+& minikube -p minikube docker-env --shell powershell | Invoke-Expression
+
+
+cd backend; docker build -t mern-backend:latest .; cd ..
+cd frontend; docker build -t mern-frontend:latest .; cd ..
+
+
+
+//only installed
+# 1. Uninstall the broken Helm chart
+helm uninstall mern-app
+
+# 2. Delete the broken MinIO deployment
+kubectl delete -f minio-setup.yaml
+
+# 3. Ensure Minikube is pointing to Docker
+& minikube -p minikube docker-env --shell powershell | Invoke-Expression
+//ends
+
+kubectl apply -f minio-setup.yaml
+helm install mern-app ./k8s-helm
+
+
+kubectl exec -it mongo-0 -- mongosh -u admin -p password123 --authenticationDatabase admin --eval 'rs.initiate({_id: "rs0", members: [{_id: 0, host: "mongo-0.mongo-service.default.svc.cluster.local:27017"}, {_id: 1, host: "mongo-1.mongo-service.default.svc.cluster.local:27017"}, {_id: 2, host: "mongo-2.mongo-service.default.svc.cluster.local:27017"}]})'
+
+"[default]`r`naws_access_key_id = minio`r`naws_secret_access_key = minio123" | Out-File -FilePath ./credentials-velero -Encoding ascii
+
+kubectl run minio-maker --rm -it --image=minio/mc --restart=Never --command -- /bin/sh -c "mc alias set local http://minio.default.svc:9000 minio minio123; mc mb local/velero --ignore-existing; echo 'BUCKET READY'"
+
+.\velero install --provider aws --plugins velero/velero-plugin-for-aws:v1.2.0 --bucket velero --secret-file ./credentials-velero --use-volume-snapshots=false --use-node-agent --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://minio.default.svc:9000
+
+kubectl create namespace monitoring
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+helm install mern-monitor prometheus-community/kube-prometheus-stack --namespace monitoring
+
+////Open new PowerShell window.
+kubectl port-forward svc/mern-monitor-grafana 3000:80 -n monitoring
+Browser: http://localhost:3000 (User: admin, Pass: prom-operator).
+
+
+
+Make sure you are in mern-master.
+Run: .\auto_restore.ps1
+When it asks, open a separate terminal and run kubectl port-forward svc/frontend-service 8080:80.
+Add data in browser at localhost:8080.
+Press ENTER in the script window.
+Wait for success!
+

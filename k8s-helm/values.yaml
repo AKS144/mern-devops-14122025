@@ -1,0 +1,16 @@
+replicaCount: 3
+backend:
+  image: mern-backend:latest
+  port: 5000
+  jwtSecret: supersecret
+frontend:
+  image: mern-frontend:latest
+  port: 80
+mongodb:
+  image: mongo:5.0
+  replicas: 3
+  dbName: taskmanager
+  rootUser: admin
+  rootPassword: password123
+  keyFileContent: "bXlzZWNyZXRrZXlmb3Jtb25nbzEyMw=="
+  

@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5000"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: backend
+        image: {{ .Values.backend.image }}
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 5000
+        env:
+        - name: PORT
+          value: "5000"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: mern-secrets
+              key: jwt-secret
+        - name: MONGO_URI
+          valueFrom:
+            configMapKeyRef:
+              name: mern-config
+              key: MONGO_URI
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 5000
+      targetPort: 5000
