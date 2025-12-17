@@ -6,9 +6,14 @@ terraform {
   }
 }
 
+# Define a variable that Jenkins will fill in
+variable "kube_config" {
+  type = string
+}
+
 provider "kubernetes" {
-  # No config_path needed! 
-  # Terraform will automatically find ~/.kube/config inside Jenkins.
+  # Explicitly use the variable
+  config_path = var.kube_config
 }
 
 resource "kubernetes_namespace" "mern_ns" {

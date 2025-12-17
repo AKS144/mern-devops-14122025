@@ -29,11 +29,18 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: 'k8s-kubeconfig', variable: 'KUBECONFIG')]) {
                     dir('terraform') {
-                        // WIPE EVERYTHING to force a fresh start
+                        // Debug: Print file info to logs to prove it exists
+                        sh 'ls -l $KUBECONFIG'
+                        // Debug: Check if content looks correct (First 5 lines)
+                        sh 'head -n 5 $KUBECONFIG'
+
+                        // Clean up old state
                         sh 'rm -rf .terraform .terraform.lock.hcl terraform.tfstate terraform.tfstate.backup'
                         
                         sh 'terraform init'
-                        sh 'terraform apply -auto-approve'
+                        
+                        // FIX: Explicitly pass the path to Terraform
+                        sh 'terraform apply -auto-approve -var "kube_config=$KUBECONFIG"'
                     }
                 }
             }
@@ -41,9 +48,13 @@ pipeline {
 
         stage('Secrets (Ansible)') {
             steps {
-                dir('ansible') {
-                    // No special flags needed anymore
-                    sh 'ansible-playbook -i inventory.ini secrets.yaml'
+                withCredentials([file(credentialsId: 'k8s-kubeconfig', variable: 'KUBECONFIG')]) {
+                    dir('ansible') {
+                        // Explicitly set the K8S_AUTH_KUBECONFIG environment variable for Ansible
+                        withEnv(["K8S_AUTH_KUBECONFIG=${KUBECONFIG}"]) {
+                            sh 'ansible-playbook -i inventory.ini secrets.yaml'
+                        }
+                    }
                 }
             }
         }
