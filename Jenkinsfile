@@ -29,18 +29,16 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: 'k8s-kubeconfig', variable: 'KUBECONFIG')]) {
                     dir('terraform') {
-                        // Debug: Print file info to logs to prove it exists
-                        sh 'ls -l $KUBECONFIG'
-                        // Debug: Check if content looks correct (First 5 lines)
-                        sh 'head -n 5 $KUBECONFIG'
-
-                        // Clean up old state
-                        sh 'rm -rf .terraform .terraform.lock.hcl terraform.tfstate terraform.tfstate.backup'
-                        
+                        sh 'rm -rf .terraform .terraform.lock.hcl'
                         sh 'terraform init'
                         
-                        // FIX: Explicitly pass the path to Terraform
-                        sh 'terraform apply -auto-approve -var "kube_config=$KUBECONFIG"'
+                        script {
+                            // Try to import the namespace. If it fails (because it's not there), 
+                            // that's fine, the next 'apply' command will just create it.
+                            sh "terraform import -var 'kube_config=${KUBECONFIG}' kubernetes_namespace_v1.mern_ns mern-namespace || echo 'Namespace not found or already managed'"
+                        }
+                        
+                        sh "terraform apply -auto-approve -var 'kube_config=${KUBECONFIG}'"
                     }
                 }
             }

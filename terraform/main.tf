@@ -6,17 +6,16 @@ terraform {
   }
 }
 
-# Define a variable that Jenkins will fill in
 variable "kube_config" {
   type = string
 }
 
 provider "kubernetes" {
-  # Explicitly use the variable
   config_path = var.kube_config
 }
 
-resource "kubernetes_namespace" "mern_ns" {
+# We use "mern_namespace" as the terraform ID, but "mern-namespace" as the actual K8s name
+resource "kubernetes_namespace_v1" "mern_ns" {
   metadata {
     name = "mern-namespace"
   }
