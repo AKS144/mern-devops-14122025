@@ -14,13 +14,27 @@ pipeline {
             }
         }
 
+        // stage('Infrastructure (Terraform)') {
+        //     steps {
+        //         dir('terraform') {
+        //             // Clean previous state to prevent locking errors
+        //             sh 'rm -rf .terraform .terraform.lock.hcl'
+        //             sh 'terraform init'
+        //             sh 'terraform apply -auto-approve'
+        //         }
+        //     }
+        // }
+
         stage('Infrastructure (Terraform)') {
             steps {
-                dir('terraform') {
-                    // Clean previous state to prevent locking errors
-                    sh 'rm -rf .terraform .terraform.lock.hcl'
-                    sh 'terraform init'
-                    sh 'terraform apply -auto-approve'
+                withCredentials([file(credentialsId: 'k8s-kubeconfig', variable: 'KUBECONFIG')]) {
+                    dir('terraform') {
+                        // WIPE EVERYTHING to force a fresh start
+                        sh 'rm -rf .terraform .terraform.lock.hcl terraform.tfstate terraform.tfstate.backup'
+                        
+                        sh 'terraform init'
+                        sh 'terraform apply -auto-approve'
+                    }
                 }
             }
         }
