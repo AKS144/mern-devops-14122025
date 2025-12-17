@@ -7,8 +7,8 @@ terraform {
 }
 
 provider "kubernetes" {
-  # This matches the file we generated in Jenkinsfile
-  config_path = "/var/jenkins_home/workspace/MERN-Deploy/k8s-config-fixed"
+  # No config_path needed! 
+  # Terraform will automatically find ~/.kube/config inside Jenkins.
 }
 
 resource "kubernetes_namespace" "mern_ns" {
