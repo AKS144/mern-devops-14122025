@@ -10,6 +10,9 @@ frontend:
 mongodb:
   image: mongo:5.0
   replicas: 3
-  rootUser: admin
-  rootPassword: password123
+  rootUser: "admin"            
+  rootPassword: "password123"   
   keyFileContent: "bXlzZWNyZXRrZXlmb3Jtb25nbzEyMw=="
+  # rootUser: admin
+  # rootPassword: password123
+  # keyFileContent: "bXlzZWNyZXRrZXlmb3Jtb25nbzEyMw=="
