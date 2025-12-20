@@ -7,10 +7,7 @@ RUN npm ci --legacy-peer-deps || npm install
 # Copy source code
 COPY . .
 
-# Fix permissions manually just in case
-RUN chmod +x node_modules/.bin/react-scripts
-
-# Build
+# Build (npm knows how to run its own scripts)
 RUN npm run build
 
 FROM nginx:alpine
