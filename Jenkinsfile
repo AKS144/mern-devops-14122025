@@ -57,6 +57,20 @@ pipeline {
             }
         }
 
+        // stage('Build & Push Docker') {
+        //     steps {
+        //         script {
+        //             sh 'echo $DOCKER_CRED_PSW | docker login -u $DOCKER_CRED_USR --password-stdin'
+                    
+        //             sh "docker build -t $DOCKER_USER/mern-backend:latest ./backend"
+        //             sh "docker push $DOCKER_USER/mern-backend:latest"
+                    
+        //             sh "docker build -t $DOCKER_USER/mern-frontend:latest ./frontend"
+        //             sh "docker push $DOCKER_USER/mern-frontend:latest"
+        //         }
+        //     }
+        // }
+
         stage('Build & Push Docker') {
             steps {
                 script {
@@ -65,7 +79,11 @@ pipeline {
                     sh "docker build -t $DOCKER_USER/mern-backend:latest ./backend"
                     sh "docker push $DOCKER_USER/mern-backend:latest"
                     
-                    sh "docker build -t $DOCKER_USER/mern-frontend:latest ./frontend"
+                    // DEBUG: Print the Frontend Dockerfile to log to verify it has 'npx'
+                    sh "cat frontend/Dockerfile"
+
+                    // Force no cache to pick up the new file
+                    sh "docker build --no-cache -t $DOCKER_USER/mern-frontend:latest ./frontend"
                     sh "docker push $DOCKER_USER/mern-frontend:latest"
                 }
             }

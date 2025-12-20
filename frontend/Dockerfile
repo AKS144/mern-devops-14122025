@@ -1,14 +1,14 @@
 FROM node:16-alpine as build
 WORKDIR /app
 COPY package*.json ./
-# Clean install (forces fresh download and correct permissions)
-RUN npm ci --legacy-peer-deps || npm install
+# Use npm install to ensure compatibility
+RUN npm install
 
 # Copy source code
 COPY . .
 
-# Build (npm knows how to run its own scripts)
-RUN npm run build
+# Use NPX to run build (More robust path handling)
+RUN npx react-scripts build
 
 FROM nginx:alpine
 COPY --from=build /app/build /usr/share/nginx/html
