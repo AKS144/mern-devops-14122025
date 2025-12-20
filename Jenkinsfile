@@ -89,15 +89,30 @@ pipeline {
             }
         }
 
+        // stage('Deploy (Helm)') {
+        //     steps {
+        //         // Helm finds the config at ~/.kube/config automatically
+        //         sh """
+        //            helm upgrade --install mern-app ./k8s-helm \
+        //            --namespace mern-namespace \
+        //            --set backend.image=$DOCKER_USER/mern-backend \
+        //            --set frontend.image=$DOCKER_USER/mern-frontend
+        //         """
+        //     }
+        // }
+
         stage('Deploy (Helm)') {
             steps {
-                // Helm finds the config at ~/.kube/config automatically
-                sh """
-                   helm upgrade --install mern-app ./k8s-helm \
-                   --namespace mern-namespace \
-                   --set backend.image=$DOCKER_USER/mern-backend \
-                   --set frontend.image=$DOCKER_USER/mern-frontend
-                """
+                withCredentials([file(credentialsId: 'k8s-kubeconfig', variable: 'KUBECONFIG')]) {
+                    // FIX: Added --kubeconfig flag explicitly
+                    sh """
+                       helm upgrade --install mern-app ./k8s-helm \
+                       --namespace mern-namespace \
+                       --set backend.image=$DOCKER_USER/mern-backend \
+                       --set frontend.image=$DOCKER_USER/mern-frontend \
+                       --kubeconfig $KUBECONFIG
+                    """
+                }
             }
         }
     }
