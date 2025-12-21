@@ -40,9 +40,20 @@ pipeline {
                 }
             }
         }
+        // stage('Deploy') {
+        //     steps {
+        //         withCredentials([file(credentialsId: 'k8s-kubeconfig', variable: 'KUBECONFIG')]) {
+        //             sh "helm upgrade --install mern-app ./k8s-helm --namespace mern-namespace --set backend.image=$DOCKER_USER/mern-backend --set frontend.image=$DOCKER_USER/mern-frontend --kubeconfig $KUBECONFIG"
+        //         }
+        //     }
+        // }
         stage('Deploy') {
             steps {
                 withCredentials([file(credentialsId: 'k8s-kubeconfig', variable: 'KUBECONFIG')]) {
+                    // FIX: Delete the conflicting secret so Helm can assume ownership
+                    sh "kubectl delete secret mern-secrets -n mern-namespace --kubeconfig $KUBECONFIG --ignore-not-found"
+                    
+                    // Proceed with Deploy
                     sh "helm upgrade --install mern-app ./k8s-helm --namespace mern-namespace --set backend.image=$DOCKER_USER/mern-backend --set frontend.image=$DOCKER_USER/mern-frontend --kubeconfig $KUBECONFIG"
                 }
             }
