@@ -1,0 +1,40 @@
+# 1. Clean old containers
+try { docker rm -f jenkins-server } catch {}
+try { docker network rm devops-net } catch {}
+
+# 2. Create Network
+docker network create devops-net
+docker network connect devops-net minikube
+
+# 3. Create Dockerfile for Jenkins
+$dockerfile = @"
+FROM jenkins/jenkins:lts
+USER root
+RUN apt-get update && apt-get install -y docker.io python3-pip wget unzip curl git
+# Terraform
+RUN wget https://releases.hashicorp.com/terraform/1.6.0/terraform_1.6.0_linux_amd64.zip && unzip terraform_1.6.0_linux_amd64.zip && mv terraform /usr/local/bin/
+# Kubectl
+RUN curl -LO "https://dl.k8s.io/release/`$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && chmod +x kubectl && mv kubectl /usr/local/bin/
+# Helm
+RUN curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+# Ansible
+RUN pip3 install ansible kubernetes --break-system-packages
+RUN ansible-galaxy collection install community.kubernetes
+RUN usermod -aG docker jenkins
+USER jenkins
+"@
+$dockerfile | Out-File Dockerfile -Encoding ASCII
+
+# 4. Build & Run
+docker build -t my-devops-jenkins .
+docker run -d -p 9090:8080 -p 50000:50000 --name jenkins-server --network devops-net `
+  -v //var/run/docker.sock:/var/run/docker.sock `
+  --user root `
+  my-devops-jenkins
+
+Write-Host "Jenkins is running on http://localhost:9090" -ForegroundColor Green
+Write-Host "Initial Password:"
+docker exec jenkins-server cat /var/jenkins_home/secrets/initialAdminPassword
+
+localhost:9090
+

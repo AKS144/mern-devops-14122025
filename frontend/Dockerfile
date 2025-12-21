@@ -2,14 +2,8 @@ FROM node:16-alpine as build
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
-
-# Copy source code
 COPY . .
-
-# DISABLE ESLINT to prevent build crashes in Docker
 ENV DISABLE_ESLINT_PLUGIN=true
-
-# Use NPX to run build
 RUN npx react-scripts build
 
 FROM nginx:alpine
