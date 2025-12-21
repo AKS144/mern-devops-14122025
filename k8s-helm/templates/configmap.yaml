@@ -6,4 +6,4 @@ data:
   MONGO_INITDB_ROOT_USERNAME: {{ .Values.mongodb.rootUser }}
   MONGO_DB_NAME: {{ .Values.mongodb.dbName }}
   # IMPORTANT: Points to mongo-0, mongo-1, mongo-2
-  MONGO_URI: "mongodb://{{ .Values.mongodb.rootUser }}:{{ .Values.mongodb.rootPassword }}@mongo-0.mongo-service.default.svc.cluster.local:27017,mongo-1.mongo-service.default.svc.cluster.local:27017,mongo-2.mongo-service.default.svc.cluster.local:27017/{{ .Values.mongodb.dbName }}?authSource=admin&replicaSet=rs0"
+  MONGO_URI: "mongodb://{{ .Values.mongodb.rootUser }}:{{ .Values.mongodb.rootPassword }}@mongo-0.mongo-service.mern-namespace.svc.cluster.local:27017,mongo-1.mongo-service.mern-namespace.svc.cluster.local:27017,mongo-2.mongo-service.mern-namespace.svc.cluster.local:27017/{{ .Values.mongodb.dbName }}?authSource=admin&replicaSet=rs0"
