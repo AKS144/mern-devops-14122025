@@ -39,3 +39,8 @@ docker exec jenkins-server cat /var/jenkins_home/secrets/initialAdminPassword
 localhost:9090
 
 kubectl logs -l app=backend -n mern-namespace  //check database connected
+
+
+
+//direct deploy of ansible secret as no 
+kubectl create secret generic mern-secrets -n mern-namespace --from-literal=mongo-root-password=password123 --from-literal=mongo-keyfile=mysecretkeyformongo123 --from-literal=jwt-secret=supersecret

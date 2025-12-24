@@ -1,14 +1,28 @@
-FROM jenkins/jenkins:lts
-USER root
-RUN apt-get update && apt-get install -y docker.io python3-pip wget unzip curl git
-# Terraform
-RUN wget https://releases.hashicorp.com/terraform/1.6.0/terraform_1.6.0_linux_amd64.zip && unzip terraform_1.6.0_linux_amd64.zip && mv terraform /usr/local/bin/
-# Kubectl
-RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && chmod +x kubectl && mv kubectl /usr/local/bin/
-# Helm
-RUN curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-# Ansible
-RUN pip3 install ansible kubernetes --break-system-packages
-RUN ansible-galaxy collection install community.kubernetes
-RUN usermod -aG docker jenkins
-USER jenkins
+FROM node:16-alpine as build
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+ENV DISABLE_ESLINT_PLUGIN=true
+RUN npx react-scripts build
+
+FROM nginx:alpine
+COPY --from=build /app/build /usr/share/nginx/html
+
+# --- FIXED NGINX CONFIGURATION ---
+# 1. Serves React App for normal requests
+# 2. Forwards /api requests to the 'backend-service' in Kubernetes
+RUN echo 'server { \
+  listen 80; \
+  location / { \
+    root /usr/share/nginx/html; \
+    index index.html; \
+    try_files $uri /index.html; \
+  } \
+  location /api { \
+    proxy_pass http://backend-service:5000; \
+  } \
+}' > /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
