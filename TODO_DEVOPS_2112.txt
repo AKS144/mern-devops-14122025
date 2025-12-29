@@ -42,5 +42,36 @@ kubectl logs -l app=backend -n mern-namespace  //check database connected
 
 
 
-//direct deploy of ansible secret as no 
+//direct deploy of ansible secret as not needed
 kubectl create secret generic mern-secrets -n mern-namespace --from-literal=mongo-root-password=password123 --from-literal=mongo-keyfile=mysecretkeyformongo123 --from-literal=jwt-secret=supersecret
+
+
+
+
+//
+kubectl exec -it mongo-0 -n mern-namespace -- mongosh -u admin -p password123 --authenticationDatabase admin
+try {
+    var cfg = rs.conf();
+    cfg.members[0].host = "mongo-0.mongo-service.mern-namespace.svc.cluster.local:27017";
+    cfg.members[1].host = "mongo-1.mongo-service.mern-namespace.svc.cluster.local:27017";
+    cfg.members[2].host = "mongo-2.mongo-service.mern-namespace.svc.cluster.local:27017";
+    rs.reconfig(cfg, {force: true});
+    print("Reconfiguration Successful");
+} catch (e) {
+    rs.initiate({
+        _id: "rs0",
+        members: [
+            { _id: 0, host: "mongo-0.mongo-service.mern-namespace.svc.cluster.local:27017" },
+            { _id: 1, host: "mongo-1.mongo-service.mern-namespace.svc.cluster.local:27017" },
+            { _id: 2, host: "mongo-2.mongo-service.mern-namespace.svc.cluster.local:27017" }
+        ]
+    });
+    print("Initialization Successful");
+}
+//
+
+
+
+//grafana
+password generate o nscreen
+kubectl get secret --namespace monitoring monitoring-grafana -o jsonpath="{.data.admin-password}" | ForEach-Object { [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($_)) }

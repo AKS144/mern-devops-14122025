@@ -62,7 +62,7 @@ function App() {
 
   return (
     <div style={{ maxWidth: "600px", margin: "40px auto", padding: "20px", fontFamily: "Arial", border: "1px solid #ddd", borderRadius: "12px", boxShadow: "0 3px 10px rgba(0,0,0,0.1)" }}>
-      <h2 style={{ textAlign: "center" }}>MERN CRUD App</h2>
+      <h2 style={{ textAlign: "center" }}>MERN React CRUD App</h2>
 
       {/* ADD FORM */}
       <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
