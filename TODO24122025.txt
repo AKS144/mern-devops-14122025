@@ -7,6 +7,7 @@ docker network rm devops-net 2>$null
 # 2. Reset Minikube (Fresh Cluster)
 minikube delete --all
 minikube start --driver=docker --memory 8192 --cpus 4
+#minikube start --driver=docker --memory 8192 --cpus 5 --ports=8443:8443
 
 # 3. Enable Ingress
 minikube addons enable ingress
@@ -98,6 +99,8 @@ EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
 
 
+
+
 7.k8s-helm/values.yaml
 replicaCount: 3
 backend:
@@ -116,11 +119,16 @@ mongodb:
   keyFileContent: "bXlzZWNyZXRrZXlmb3Jtb25nbzEyMw=="
 
 
+
+
 8.k8s-helm/templates/backend-deployment.yaml
 env:
         - name: MONGO_URI
           # MUST point to mern-namespace
           value: "mongodb://admin:password123@mongo-0.mongo-service.mern-namespace.svc.cluster.local:27017,mongo-1.mongo-service.mern-namespace.svc.cluster.local:27017,mongo-2.mongo-service.mern-namespace.svc.cluster.local:27017/taskmanager?authSource=admin&replicaSet=rs0"
+
+
+
 
 9.k8s-helm/templates/secret.yaml
 apiVersion: v1
@@ -130,6 +138,8 @@ type: Opaque
 data:
   mongo-root-password: {{ .Values.mongodb.rootPassword | toString | b64enc | quote }}
   mongo-keyfile: {{ .Values.mongodb.keyFileContent | b64enc | quote }}
+
+
 
 
 10.Jenkinsfile

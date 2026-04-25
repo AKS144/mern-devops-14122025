@@ -35,7 +35,7 @@ kubectl exec -it mongo-0 -- mongosh -u admin -p password123 --authenticationData
 
 
 ////////////////////follow for database not connecting as admin its redirect to test db/////////////////////////
-mongo-statefulset.yaml chnage it
+mongo-statefulset.yaml change it
 # 1. Uninstall
 helm uninstall mern-app
 
