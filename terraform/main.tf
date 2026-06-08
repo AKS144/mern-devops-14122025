@@ -35,22 +35,51 @@
 
 
 
+# terraform {
+#   required_providers {
+#     kubernetes = {
+#       source  = "hashicorp/kubernetes"
+#       # FIX: Pin the version to the stable one to avoid expired key errors
+#       version = "3.0.1" 
+#     }
+#   }
+# }
+
+# variable "kube_config" { type = string }
+
+# provider "kubernetes" { 
+#   config_path = var.kube_config 
+# }
+
+# resource "kubernetes_namespace_v1" "mern_ns" {
+#   metadata { name = "mern-namespace" }
+# }
+
+
+
+
+
+
 terraform {
   required_providers {
     kubernetes = {
       source  = "hashicorp/kubernetes"
-      # FIX: Pin the version to the stable one to avoid expired key errors
-      version = "3.0.1" 
+      # REMOVE the version = "3.0.1" line entirely.
+      # This forces it to download the newest version (v3.2.x) and avoids the expired key.
     }
   }
 }
 
-variable "kube_config" { type = string }
+variable "kube_config" {
+  type = string
+}
 
-provider "kubernetes" { 
-  config_path = var.kube_config 
+provider "kubernetes" {
+  config_path = var.kube_config
 }
 
 resource "kubernetes_namespace_v1" "mern_ns" {
-  metadata { name = "mern-namespace" }
+  metadata {
+    name = "mern-namespace"
+  }
 }
