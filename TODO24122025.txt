@@ -5,9 +5,10 @@ docker rm -f jenkins-server 2>$null
 docker network rm devops-net 2>$null
 
 # 2. Reset Minikube (Fresh Cluster)
+minikube stop
 minikube delete --all
 minikube start --driver=docker --memory 8192 --cpus 4
-#minikube start --driver=docker --memory 8192 --cpus 5 --ports=8443:8443
+#minikube start --driver=docker --memory 8192 --cpus 5
 
 # 3. Enable Ingress
 minikube addons enable ingress
@@ -15,6 +16,9 @@ minikube addons enable ingress
 # 4. Create a dedicated Network so Jenkins can see Minikube
 docker network create devops-net
 docker network connect devops-net minikube
+
+# 6. Verify cluster is running
+kubectl get nodes
 
 
 
