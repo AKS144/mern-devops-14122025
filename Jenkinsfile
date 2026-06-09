@@ -32,11 +32,16 @@ pipeline {
         stage('Build & Push') {
             steps {
                 script {
-                    sh 'echo $DOCKER_CRED_PSW | docker login -u $DOCKER_CRED_USR --password-stdin'
-                    sh "docker build -t $DOCKER_USER/mern-backend:latest ./backend"
-                    sh "docker push $DOCKER_USER/mern-backend:latest"
-                    sh "docker build --no-cache -t $DOCKER_USER/mern-frontend:latest ./frontend"
-                    sh "docker push $DOCKER_USER/mern-frontend:latest"
+                    // FIX: Wrap the credentials in a withCredentials block to explicitly extract the Username and Password
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-abhi144k', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER_AUTH')]) {
+                        // Use the extracted variables for login
+                        sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER_AUTH --password-stdin'
+                        
+                        sh "docker build -t $DOCKER_USER/mern-backend:latest ./backend"
+                        sh "docker push $DOCKER_USER/mern-backend:latest"
+                        sh "docker build --no-cache -t $DOCKER_USER/mern-frontend:latest ./frontend"
+                        sh "docker push $DOCKER_USER/mern-frontend:latest"
+                    }
                 }
             }
         }
